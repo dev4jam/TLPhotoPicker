@@ -26,7 +26,7 @@ TODO: Add long description of the pod here.
   s.author           = { 'dmitry.klimkin' => 'dmitry.klimkin@gmail.com' }
   s.source           = { :git => 'https://github.com/dev4jam/TLPhotoPicker.git', :tag => s.version.to_s }
 
-  s.ios.deployment_target = '16.0'
+  s.ios.deployment_target = '15.6'
   s.swift_version = '5.0'
   s.pod_target_xcconfig = { 'SWIFT_VERSION' => '5.0' }
 
