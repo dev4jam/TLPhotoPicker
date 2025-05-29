@@ -617,7 +617,7 @@ extension TLPhotosPickerViewController: TLPhotoLibraryDelegate {
         self.focusFirstCollection()
         let isEmpty = !self.collections.contains(where: { $0.assetCount > 0 })
         self.subTitleStackView.isHidden = isEmpty
-        self.emptyView.isHidden = !isEmpty
+        self.emptyView.isHidden = true
         self.emptyImageView.isHidden = self.emptyImageView.image == nil
         self.indicator.stopAnimating()
         self.reloadTableView()
@@ -917,21 +917,26 @@ extension TLPhotosPickerViewController: PHPhotoLibraryChangeObserver {
                     self.collectionView.performBatchUpdates({ [weak self] in
                         guard let `self` = self else { return }
                         self.focusedCollection?.fetchResult = changes.fetchResultAfterChanges
+                        
+                        let section = self.collectionView.numberOfSections - 1
+                        
                         if let removed = changes.removedIndexes, removed.count > 0 {
-                            self.collectionView.deleteItems(at: removed.map { IndexPath(item: $0+addIndex, section:0) })
+                            self.collectionView.deleteItems(at: removed.map { IndexPath(item: $0+addIndex, section:section) })
                         }
                         if let inserted = changes.insertedIndexes, inserted.count > 0 {
-                            self.collectionView.insertItems(at: inserted.map { IndexPath(item: $0+addIndex, section:0) })
+                            self.collectionView.insertItems(at: inserted.map { IndexPath(item: $0+addIndex, section:section) })
                         }
                         changes.enumerateMoves { fromIndex, toIndex in
-                            self.collectionView.moveItem(at: IndexPath(item: fromIndex, section: 0),
-                                                         to: IndexPath(item: toIndex, section: 0))
+                            self.collectionView.moveItem(at: IndexPath(item: fromIndex, section: section),
+                                                         to: IndexPath(item: toIndex, section: section))
                         }
                     }, completion: { [weak self] (completed) in
                         guard let `self` = self else { return }
                         if completed {
+                            let section = self.collectionView.numberOfSections - 1
+
                             if let changed = changes.changedIndexes, changed.count > 0 {
-                                self.collectionView.reloadItems(at: changed.map { IndexPath(item: $0+addIndex, section:0) })
+                                self.collectionView.reloadItems(at: changed.map { IndexPath(item: $0+addIndex, section:section) })
                             }
                         }
                     })
@@ -1008,17 +1013,26 @@ extension TLPhotosPickerViewController: UICollectionViewDelegate,UICollectionVie
             return cell
         }
         let nibName = self.configure.nibSet?.nibName ?? "TLPhotoCollectionViewCell"
-        var cell = makeCell(nibName: nibName)
-        guard let collection = self.focusedCollection else { return cell }
-        cell.isCameraCell = collection.useCameraButton && indexPath.section == 0 && indexPath.row == 0
-        if cell.isCameraCell {
-            if let nibName = self.configure.cameraCellNibSet?.nibName {
+        
+        guard let collection = self.focusedCollection else { return makeCell(nibName: nibName) }
+
+        let isCameraCell: Bool = collection.useCameraButton && indexPath.section == 0 && indexPath.row == 0
+
+        var cell: TLPhotoCollectionViewCell!
+
+        if isCameraCell {
+            if let cameraNibName = self.configure.cameraCellNibSet?.nibName {
+                cell = makeCell(nibName: cameraNibName)
+                cell.isCameraCell = isCameraCell
+            } else {
                 cell = makeCell(nibName: nibName)
-            }else{
                 cell.imageView?.image = self.cameraImage
             }
             return cell
+        } else {
+            cell = makeCell(nibName: nibName)
         }
+        
         guard let asset = collection.getTLAsset(at: indexPath) else { return cell }
         
         cell.asset = asset.phAsset
